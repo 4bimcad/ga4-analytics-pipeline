@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INFOSET · Панель аналитики</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg: #14181c;
+    --bg-panel: #1b2126;
+    --line: #2a3238;
+    --copper: #c17d4a;
+    --copper-bright: #e0975c;
+    --patina: #6f9788;
+    --ink: #eae6dc;
+    --ink-dim: #93a0a6;
+    --ink-faint: #5c6a70;
+    --danger: #b8604f;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 32px 24px 64px;
+  }
+  .wrap{ max-width: 1180px; margin: 0 auto; }
+
+  /* ---------- HEADER ---------- */
+  header{
+    display:flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 24px;
+    margin-bottom: 32px;
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--patina);
+    margin-bottom: 8px;
+  }
+  h1{
+    font-family:'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 30px;
+    letter-spacing: -0.01em;
+  }
+  .property-tag{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--ink-faint);
+    text-align: right;
+  }
+  .status-dot{
+    display:inline-block;
+    width:7px; height:7px;
+    border-radius:50%;
+    background: var(--patina);
+    margin-right: 6px;
+    box-shadow: 0 0 8px var(--patina);
+  }
+
+  /* ---------- READOUT ROW (signature element) ---------- */
+  .readouts{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+  .readout{
+    position: relative;
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    padding: 20px 18px;
+  }
+  .readout::before, .readout::after,
+  .readout .corner-tl, .readout .corner-br{
+    content:'';
+    position:absolute;
+    width: 10px; height: 10px;
+    border: 1.5px solid var(--copper);
+    opacity: 0.7;
+  }
+  .readout::before{ top:-1px; left:-1px; border-right:none; border-bottom:none; }
+  .readout::after{ bottom:-1px; right:-1px; border-left:none; border-top:none; }
+  .readout-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 10px;
+  }
+  .readout-value{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .readout-value.copper{ color: var(--copper-bright); }
+  .readout-delta{
+    margin-top: 8px;
+    font-size: 12px;
+    font-family:'JetBrains Mono', monospace;
+  }
+  .delta-up{ color: var(--patina); }
+  .delta-down{ color: var(--danger); }
+  .delta-flat{ color: var(--ink-faint); }
+
+  /* ---------- PANELS ---------- */
+  .panels{
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .panel{
+    background: var(--bg-panel);
+    border: 1px solid var(--line);
+    padding: 22px;
+  }
+  .panel-title{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+  .panel-sub{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-bottom: 18px;
+  }
+  .chart-box{ position: relative; height: 260px; }
+
+  .full-row{ margin-bottom: 16px; }
+
+  table{ width: 100%; border-collapse: collapse; font-size: 13px; }
+  th{
+    text-align: left;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 500;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  td{
+    padding: 10px 10px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink);
+  }
+  td.num{ font-family:'JetBrains Mono', monospace; text-align: right; color: var(--ink-dim); }
+  tr:last-child td{ border-bottom: none; }
+
+  .empty-state{
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--ink-faint);
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .empty-state strong{ color: var(--copper-bright); display:block; margin-bottom: 6px; font-family:'Space Grotesk', sans-serif; }
+
+  footer{
+    margin-top: 24px;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    text-align: center;
+  }
+
+  @media (max-width: 860px){
+    .readouts{ grid-template-columns: repeat(2, 1fr); }
+    .panels{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="eyebrow">Data API · ga4_marts.daily_summary</div>
+      <h1>Panel de tráfico — INFOSET</h1>
+    </div>
+    <div class="property-tag">
+      <span class="status-dot" id="statusDot"></span><span id="statusText">conectando…</span><br>
+      property 469152647
+    </div>
+  </header>
+
+  <section class="readouts" id="readouts">
+    <div class="readout"><div class="readout-label">Sesiones (7d)</div><div class="readout-value" id="rSessions">—</div><div class="readout-delta" id="dSessions"></div></div>
+    <div class="readout"><div class="readout-label">Usuarios totales</div><div class="readout-value" id="rUsers">—</div><div class="readout-delta" id="dUsers"></div></div>
+    <div class="readout"><div class="readout-label">Tasa de interacción</div><div class="readout-value copper" id="rEngagement">—</div><div class="readout-delta" id="dEngagement"></div></div>
+    <div class="readout"><div class="readout-label">Conversiones</div><div class="readout-value" id="rConversions">—</div><div class="readout-delta" id="dConversions"></div></div>
+  </section>
+
+  <section class="panels">
+    <div class="panel">
+      <div class="panel-title">Sesiones por día</div>
+      <div class="panel-sub">últimos registros de ga4_marts.daily_summary</div>
+      <div class="chart-box"><canvas id="sessionsChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Usuarios nuevos vs. totales</div>
+      <div class="panel-sub">comparación diaria</div>
+      <div class="chart-box"><canvas id="usersChart"></canvas></div>
+    </div>
+  </section>
+
+  <section class="panel full-row">
+    <div class="panel-title">Detalle diario</div>
+    <div class="panel-sub">fuente principal de tráfico por día</div>
+    <div id="tableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Fuente principal</th>
+            <th style="text-align:right">Sesiones</th>
+            <th style="text-align:right">Usuarios</th>
+            <th style="text-align:right">Interacción</th>
+            <th style="text-align:right">Conversiones</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>actualizado automáticamente desde GitHub Actions · GA4 Data API → Supabase</footer>
+</div>
+
+<script>
+// ============================================================
+// CONFIG — reemplaza si cambias de proyecto Supabase
+// ============================================================
+const SUPABASE_URL = "https://ojzbjenkemfvrzhoxvug.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_0aRemDOrVmPx9RrQ2M7eeQ_otnOZWHR";
+
+const REST_ENDPOINT = `${SUPABASE_URL}/rest/v1/daily_summary?select=*&order=report_date.asc`;
+
+const fmtInt = (n) => new Intl.NumberFormat('es-PE').format(Math.round(n || 0));
+const fmtPct = (n) => `${(Number(n || 0) * 100).toFixed(1)}%`;
+const fmtDate = (d) => {
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('es-PE', { day: '2-digit', month: 'short' });
+};
+
+function setStatus(ok, text){
+  const dot = document.getElementById('statusDot');
+  const label = document.getElementById('statusText');
+  dot.style.background = ok ? '#6f9788' : '#b8604f';
+  dot.style.boxShadow = `0 0 8px ${ok ? '#6f9788' : '#b8604f'}`;
+  label.textContent = text;
+}
+
+function deltaHTML(curr, prev, unit=''){
+  if (prev === undefined || prev === null || prev === 0) return { text: '—', cls: 'delta-flat' };
+  const change = ((curr - prev) / prev) * 100;
+  const sign = change > 0 ? '+' : '';
+  const cls = change > 0.5 ? 'delta-up' : (change < -0.5 ? 'delta-down' : 'delta-flat');
+  return { text: `${sign}${change.toFixed(1)}% vs. día anterior`, cls };
+}
+
+async function loadDashboard(){
+  try{
+    const res = await fetch(REST_ENDPOINT, {
+      headers: {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'Accept-Profile': 'ga4_marts'
+      }
+    });
+
+    if (!res.ok){
+      throw new Error(`HTTP ${res.status}`);
+    }
+
+    const rows = await res.json();
+
+    if (!rows || rows.length === 0){
+      setStatus(false, 'sin datos');
+      document.getElementById('tableWrap').innerHTML = `
+        <div class="empty-state">
+          <strong>Aún no hay datos</strong>
+          Verifica que el pipeline de GitHub Actions ya se haya ejecutado y que la tabla ga4_marts.daily_summary tenga filas.
+        </div>`;
+      return;
+    }
+
+    setStatus(true, `${rows.length} días cargados`);
+    renderReadouts(rows);
+    renderCharts(rows);
+    renderTable(rows);
+
+  } catch (err){
+    console.error(err);
+    setStatus(false, 'error de conexión');
+    document.getElementById('tableWrap').innerHTML = `
+      <div class="empty-state">
+        <strong>No se pudo conectar con Supabase</strong>
+        Revisa: schema "ga4_marts" expuesto, tabla "daily_summary" habilitada en Exposed Tables, y política RLS de lectura (SELECT) para el rol "anon".<br>
+        Detalle técnico: ${err.message}
+      </div>`;
+  }
+}
+
+function renderReadouts(rows){
+  const last = rows[rows.length - 1];
+  const prev = rows.length > 1 ? rows[rows.length - 2] : null;
+
+  document.getElementById('rSessions').textContent = fmtInt(last.sessions);
+  document.getElementById('rUsers').textContent = fmtInt(last.total_users);
+  document.getElementById('rEngagement').textContent = fmtPct(last.engagement_rate);
+  document.getElementById('rConversions').textContent = fmtInt(last.conversions);
+
+  const dS = deltaHTML(last.sessions, prev?.sessions);
+  const dU = deltaHTML(last.total_users, prev?.total_users);
+  const dE = deltaHTML(last.engagement_rate, prev?.engagement_rate);
+  const dC = deltaHTML(last.conversions, prev?.conversions);
+
+  const setDelta = (id, d) => {
+    const el = document.getElementById(id);
+    el.textContent = d.text;
+    el.className = `readout-delta ${d.cls}`;
+  };
+  setDelta('dSessions', dS);
+  setDelta('dUsers', dU);
+  setDelta('dEngagement', dE);
+  setDelta('dConversions', dC);
+}
+
+let sessionsChartInstance, usersChartInstance;
+
+function renderCharts(rows){
+  const labels = rows.map(r => fmtDate(r.report_date));
+
+  const ctx1 = document.getElementById('sessionsChart').getContext('2d');
+  if (sessionsChartInstance) sessionsChartInstance.destroy();
+  sessionsChartInstance = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Sesiones',
+        data: rows.map(r => r.sessions),
+        borderColor: '#e0975c',
+        backgroundColor: 'rgba(224,151,92,0.12)',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: '#e0975c',
+        tension: 0.25,
+        fill: true,
+      }]
+    },
+    options: chartBaseOptions()
+  });
+
+  const ctx2 = document.getElementById('usersChart').getContext('2d');
+  if (usersChartInstance) usersChartInstance.destroy();
+  usersChartInstance = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Nuevos',
+          data: rows.map(r => r.new_users),
+          backgroundColor: '#6f9788',
+          borderRadius: 2,
+        },
+        {
+          label: 'Totales',
+          data: rows.map(r => r.total_users),
+          backgroundColor: '#3a444b',
+          borderRadius: 2,
+        }
+      ]
+    },
+    options: chartBaseOptions(true)
+  });
+}
+
+function chartBaseOptions(stacked=false){
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        labels: { color: '#93a0a6', font: { family: 'JetBrains Mono', size: 11 }, boxWidth: 10 }
+      },
+      tooltip: {
+        backgroundColor: '#1b2126',
+        titleColor: '#eae6dc',
+        bodyColor: '#eae6dc',
+        borderColor: '#2a3238',
+        borderWidth: 1,
+        titleFont: { family: 'JetBrains Mono' },
+        bodyFont: { family: 'JetBrains Mono' },
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: '#2a3238' },
+        ticks: { color: '#5c6a70', font: { family: 'JetBrains Mono', size: 10 } }
+      },
+      y: {
+        beginAtZero: true,
+        grid: { color: '#2a3238' },
+        ticks: { color: '#5c6a70', font: { family: 'JetBrains Mono', size: 10 } },
+        stacked: stacked
+      },
+      x2: stacked ? { stacked: true } : undefined
+    }
+  };
+}
+
+function renderTable(rows){
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = [...rows].reverse().map(r => `
+    <tr>
+      <td>${fmtDate(r.report_date)}</td>
+      <td>${r.top_source || '—'}</td>
+      <td class="num">${fmtInt(r.sessions)}</td>
+      <td class="num">${fmtInt(r.total_users)}</td>
+      <td class="num">${fmtPct(r.engagement_rate)}</td>
+      <td class="num">${fmtInt(r.conversions)}</td>
+    </tr>
+  `).join('');
+}
+
+loadDashboard();
+</script>
+</body>
+</html>
