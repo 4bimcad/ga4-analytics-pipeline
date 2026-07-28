@@ -1,0 +1,29 @@
+# .github/workflows/extract_ga4.yml
+name: GA4 Daily Extraction
+
+on:
+  schedule:
+    - cron: '0 8 * * *'  # 08:00 UTC каждый день — подбери время под себя
+  workflow_dispatch:  # ручной запуск для теста
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run GA4 extraction
+        env:
+          GA4_PROPERTY_ID: ${{ secrets.GA4_PROPERTY_ID }}
+          GA4_CREDENTIALS_JSON: ${{ secrets.GA4_CREDENTIALS_JSON }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python extract_ga4.py
