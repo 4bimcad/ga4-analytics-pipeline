@@ -6,19 +6,19 @@
 <title>INFOSET · Панель аналитики</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root{
-    --bg: #14181c;
-    --bg-panel: #1b2126;
-    --line: #2a3238;
-    --copper: #c17d4a;
-    --copper-bright: #e0975c;
-    --patina: #6f9788;
-    --ink: #eae6dc;
-    --ink-dim: #93a0a6;
-    --ink-faint: #5c6a70;
-    --danger: #b8604f;
+    --bg: #f3f1ec;
+    --bg-panel: #ffffff;
+    --line: #ddd8cd;
+    --copper: #b5652f;
+    --copper-bright: #a85826;
+    --patina: #4f7c6c;
+    --ink: #2b2620;
+    --ink-dim: #6b6558;
+    --ink-faint: #98917f;
+    --danger: #a8432f;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
@@ -82,6 +82,7 @@
     background: var(--bg-panel);
     border: 1px solid var(--line);
     padding: 20px 18px;
+    box-shadow: 0 1px 3px rgba(43,38,32,0.05);
   }
   .readout::before, .readout::after,
   .readout .corner-tl, .readout .corner-br{
@@ -129,6 +130,7 @@
     background: var(--bg-panel);
     border: 1px solid var(--line);
     padding: 22px;
+    box-shadow: 0 1px 3px rgba(43,38,32,0.05);
   }
   .panel-title{
     font-family: 'Space Grotesk', sans-serif;
@@ -283,7 +285,6 @@ async function loadDashboard(){
     const res = await fetch(REST_ENDPOINT, {
       headers: {
         'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         'Accept-Profile': 'ga4_marts'
       }
     });
@@ -360,11 +361,11 @@ function renderCharts(rows){
       datasets: [{
         label: 'Sesiones',
         data: rows.map(r => r.sessions),
-        borderColor: '#e0975c',
-        backgroundColor: 'rgba(224,151,92,0.12)',
+        borderColor: '#a85826',
+        backgroundColor: 'rgba(168,88,38,0.10)',
         borderWidth: 2,
         pointRadius: 3,
-        pointBackgroundColor: '#e0975c',
+        pointBackgroundColor: '#a85826',
         tension: 0.25,
         fill: true,
       }]
@@ -382,13 +383,13 @@ function renderCharts(rows){
         {
           label: 'Nuevos',
           data: rows.map(r => r.new_users),
-          backgroundColor: '#6f9788',
+          backgroundColor: '#4f7c6c',
           borderRadius: 2,
         },
         {
           label: 'Totales',
           data: rows.map(r => r.total_users),
-          backgroundColor: '#3a444b',
+          backgroundColor: '#c9c2b2',
           borderRadius: 2,
         }
       ]
@@ -404,13 +405,13 @@ function chartBaseOptions(stacked=false){
     plugins: {
       legend: {
         display: true,
-        labels: { color: '#93a0a6', font: { family: 'JetBrains Mono', size: 11 }, boxWidth: 10 }
+        labels: { color: '#6b6558', font: { family: 'JetBrains Mono', size: 11 }, boxWidth: 10 }
       },
       tooltip: {
-        backgroundColor: '#1b2126',
-        titleColor: '#eae6dc',
-        bodyColor: '#eae6dc',
-        borderColor: '#2a3238',
+        backgroundColor: '#ffffff',
+        titleColor: '#2b2620',
+        bodyColor: '#2b2620',
+        borderColor: '#ddd8cd',
         borderWidth: 1,
         titleFont: { family: 'JetBrains Mono' },
         bodyFont: { family: 'JetBrains Mono' },
@@ -418,13 +419,13 @@ function chartBaseOptions(stacked=false){
     },
     scales: {
       x: {
-        grid: { color: '#2a3238' },
-        ticks: { color: '#5c6a70', font: { family: 'JetBrains Mono', size: 10 } }
+        grid: { color: '#ddd8cd' },
+        ticks: { color: '#98917f', font: { family: 'JetBrains Mono', size: 10 } }
       },
       y: {
         beginAtZero: true,
-        grid: { color: '#2a3238' },
-        ticks: { color: '#5c6a70', font: { family: 'JetBrains Mono', size: 10 } },
+        grid: { color: '#ddd8cd' },
+        ticks: { color: '#98917f', font: { family: 'JetBrains Mono', size: 10 } },
         stacked: stacked
       },
       x2: stacked ? { stacked: true } : undefined
